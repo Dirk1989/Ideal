@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IdealCar Admin Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a237e 0%, #283593 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .login-container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        
+        .logo {
+            margin-bottom: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo i {
+            font-size: 48px;
+            color: #FFD700;
+        }
+        
+        .logo h1 {
+            color: #1a237e;
+            font-size: 2rem;
+        }
+        
+        .logo span {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #1a237e;
+            box-shadow: 0 0 0 3px rgba(26, 35, 126, 0.1);
+        }
+        
+        .login-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #1a237e, #283593);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+        
+        .login-btn:hover {
+            background: linear-gradient(135deg, #283593, #1a237e);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(26, 35, 126, 0.3);
+        }
+        
+        .error {
+            color: #e74c3c;
+            margin-top: 15px;
+            text-align: center;
+            display: none;
+        }
+        
+        .instructions {
+            margin-top: 25px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #FFD700;
+        }
+        
+        .instructions p {
+            color: #666;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        .instructions strong {
+            color: #1a237e;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <i class="fas fa-car"></i>
+            <h1>IdealCar Admin</h1>
+            <span>Managed by Dirkl</span>
+        </div>
+        
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="password">Admin Password</label>
+                <input type="password" id="password" required 
+                       placeholder="Enter admin password" autocomplete="off">
+            </div>
+            
+            <button type="submit" class="login-btn">
+                <i class="fas fa-sign-in-alt"></i> Login
+            </button>
+            
+            <div id="errorMessage" class="error">
+                Login failed. Please check your password and try again.
+            </div>
+        </form>
+        
+        <div class="instructions">
+            <p><strong>Default Password:</strong> admin123</p>
+            <p>If login fails, ensure backend is running on http://localhost:3000</p>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('errorMessage');
+            const submitBtn = document.querySelector('.login-btn');
+            
+            // Clear previous error
+            errorMsg.style.display = 'none';
+            
+            // Show loading
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+            submitBtn.disabled = true;
+            
+            try {
+                console.log('Attempting login...');
+                
+                const response = await fetch('http://localhost:3000/api/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ password: password })
+                });
+                
+                console.log('Response status:', response.status);
+                
+                // Try to parse response as JSON
+                let data;
+                try {
+                    data = await response.json();
+                    console.log('Response data:', data);
+                } catch (jsonError) {
+                    console.error('Failed to parse JSON:', jsonError);
+                    throw new Error('Server response error');
+                }
+                
+                if (data.success) {
+                    // Save token with BOTH names for compatibility
+                    localStorage.setItem('idealcarAdminToken', data.token);
+                    localStorage.setItem('adminToken', data.token);
+                    console.log('Login successful, token saved');
+                    
+                    // Redirect to admin panel
+                    window.location.href = 'index.html';
+                } else {
+                    // Show error
+                    errorMsg.style.display = 'block';
+                    errorMsg.textContent = data.message || 'Invalid password';
+                    
+                    // Reset button
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                }
+                
+            } catch (error) {
+                console.error('Login error:', error);
+                
+                // Show user-friendly error
+                errorMsg.style.display = 'block';
+                errorMsg.textContent = 'Connection error. Please ensure:';
+                errorMsg.innerHTML += '<br>1. Backend server is running';
+                errorMsg.innerHTML += '<br>2. You are accessing via http://localhost:8001';
+                errorMsg.innerHTML += '<br>3. Port 3000 is not blocked';
+                
+                // Reset button
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+        
+        // Check if already logged in
+        const token1 = localStorage.getItem('idealcarAdminToken');
+        const token2 = localStorage.getItem('adminToken');
+        if (token1 || token2) {
+            window.location.href = 'index.html';
+        }
+        
+        // Quick test function
+        function testBackendConnection() {
+            console.log('Testing backend connection...');
+            fetch('http://localhost:3000/api/cars')
+                .then(response => {
+                    console.log('Backend status:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Backend cars:', data.length);
+                })
+                .catch(error => {
+                    console.error('Backend test failed:', error);
+                });
+        }
+        
+        // Auto-test backend connection
+        setTimeout(testBackendConnection, 1000);
+    </script>
+</body>
+</html>

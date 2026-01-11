@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IdealCar Admin - Manage Listings</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #1a237e, #283593);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+        
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .brand-name {
+            color: #FFD700;
+            font-weight: 800;
+        }
+        
+        header p {
+            opacity: 0.8;
+            font-size: 1.1rem;
+        }
+        
+        .admin-info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .admin-name {
+            font-weight: 600;
+            color: #FFD700;
+        }
+        
+        .logout-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .logout-btn:hover {
+            background: #c0392b;
+        }
+        
+        .admin-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+        
+        @media (max-width: 900px) {
+            .admin-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .form-section, .cars-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .form-section h2, .cars-section h2 {
+            color: #1a237e;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #FFD700;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #1a237e;
+        }
+        
+        label i {
+            margin-right: 8px;
+            color: #1a237e;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #1a237e;
+            box-shadow: 0 0 0 3px rgba(26, 35, 126, 0.2);
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .form-row .form-group {
+            flex: 1;
+        }
+        
+        .file-upload-container {
+            border: 2px dashed #1a237e;
+            border-radius: 8px;
+            padding: 25px;
+            text-align: center;
+            background: #f8fafc;
+            transition: all 0.3s;
+        }
+        
+        .file-upload-container:hover {
+            background: #ebf5ff;
+            border-color: #FFD700;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .upload-label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            padding: 20px;
+        }
+        
+        .upload-label i {
+            font-size: 48px;
+            color: #1a237e;
+            margin-bottom: 15px;
+        }
+        
+        .upload-label span {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .file-list {
+            margin-top: 15px;
+            max-height: 150px;
+            overflow-y: auto;
+            text-align: left;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .file-item:last-child {
+            border-bottom: none;
+        }
+        
+        .file-name {
+            font-size: 14px;
+            color: #333;
+            max-width: 80%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .file-size {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .form-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #1a237e, #283593);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #283593, #1a237e);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(26, 35, 126, 0.3);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #7f8c8d, #95a5a6);
+        }
+        
+        .car-list {
+            max-height: 600px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        
+        .car-item {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 1px solid #e9ecef;
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+        }
+        
+        .car-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-color: #FFD700;
+        }
+        
+        .car-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .car-title {
+            font-size: 1.3rem;
+            color: #1a237e;
+            margin: 0;
+        }
+        
+        .car-price {
+            color: #e74c3c;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        
+        .car-details {
+            color: #666;
+            font-size: 0.9rem;
+            margin: 10px 0;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        
+        .car-details div {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .car-details i {
+            color: #1a237e;
+            width: 16px;
+        }
+        
+        .car-images {
+            display: flex;
+            gap: 5px;
+            margin: 10px 0;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+        
+        .car-images img {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 5px;
+            border: 2px solid #ddd;
+            transition: transform 0.3s;
+        }
+        
+        .car-images img:hover {
+            transform: scale(1.1);
+            border-color: #FFD700;
+        }
+        
+        .car-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .car-actions button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex: 1;
+        }
+        
+        .btn-edit {
+            background: #1a237e;
+            color: white;
+        }
+        
+        .btn-edit:hover {
+            background: #283593;
+        }
+        
+        .btn-delete {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-delete:hover {
+            background: #c0392b;
+        }
+        
+        .features-input {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+        }
+        
+        .features-input input {
+            flex: 1;
+        }
+        
+        .features-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 10px;
+            min-height: 40px;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        
+        .feature-tag {
+            background: #e3f2fd;
+            color: #1a237e;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .feature-tag i {
+            cursor: pointer;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .feature-tag i:hover {
+            color: #e74c3c;
+        }
+        
+        .zar-price {
+            color: #008000;
+            font-weight: bold;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            padding: 15px;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1a237e;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="admin-info">
+                <a href="blog-admin.html" style="
+    background: #9b59b6;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    margin-right: 10px;
+">
+    <i class="fas fa-newspaper"></i> Blog Admin
+</a>
+                <div class="admin-name">
+                    <i class="fas fa-user-shield"></i>
+                    <span>Admin: Dirkl</span>
+                </div>
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+            
+            <h1>
+                <i class="fas fa-car"></i>
+                <span class="brand-name">IdealCar</span> Admin
+            </h1>
+            <p>Manage your car listings with multiple photos and full specifications</p>
+        </header>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="totalCars">0</div>
+                <div class="stat-label">Total Cars</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="totalImages">0</div>
+                <div class="stat-label">Total Photos</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="avgPrice">R0</div>
+                <div class="stat-label">Avg Price</div>
+            </div>
+        </div>
+        
+        <div class="admin-content">
+            <div class="form-section">
+                <h2><i class="fas fa-plus-circle"></i> Add New Car</h2>
+                <form id="carForm" enctype="multipart/form-data">
+                    <input type="hidden" id="carId">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="make"><i class="fas fa-car"></i> Make</label>
+                            <input type="text" id="make" required placeholder="Toyota">
+                        </div>
+                        <div class="form-group">
+                            <label for="model"><i class="fas fa-cog"></i> Model</label>
+                            <input type="text" id="model" required placeholder="Camry">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="year"><i class="fas fa-calendar"></i> Year</label>
+                            <input type="number" id="year" required min="1975" max="2026" value="2023">
+                        </div>
+                        <div class="form-group">
+                            <label for="price"><i class="fas fa-money-bill-wave"></i> Price (ZAR)</label>
+                            <input type="number" id="price" required placeholder="250000" step="any">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="mileage"><i class="fas fa-tachometer-alt"></i> Mileage (km)</label>
+                            <input type="text" id="mileage" placeholder="50,000 km">
+                        </div>
+                        <div class="form-group">
+                            <label for="transmission">Transmission</label>
+                            <select id="transmission">
+                                <option value="Automatic">Automatic</option>
+                                <option value="Manual">Manual</option>
+                                <option value="Semi-Automatic">Semi-Automatic</option>
+                                <option value="CVT">CVT</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="fuel">Fuel Type</label>
+                            <select id="fuel">
+                                <option value="Petrol">Petrol</option>
+                                <option value="Diesel">Diesel</option>
+                                <option value="Electric">Electric</option>
+                                <option value="Hybrid">Hybrid</option>
+                                <option value="LPG">LPG</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="engine"><i class="fas fa-cogs"></i> Engine</label>
+                            <input type="text" id="engine" placeholder="2.5L 4-cylinder">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="color"><i class="fas fa-palette"></i> Color</label>
+                            <input type="text" id="color" placeholder="White">
+                        </div>
+                        <div class="form-group">
+                            <label for="condition">Condition</label>
+                            <select id="condition">
+                                <option value="Excellent">Excellent</option>
+                                <option value="Very Good">Very Good</option>
+                                <option value="Good">Good</option>
+                                <option value="Fair">Fair</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="doors"><i class="fas fa-door-closed"></i> Doors</label>
+                            <input type="number" id="doors" min="2" max="6" value="4">
+                        </div>
+                        <div class="form-group">
+                            <label for="seats"><i class="fas fa-chair"></i> Seats</label>
+                            <input type="number" id="seats" min="2" max="9" value="5">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="description"><i class="fas fa-file-alt"></i> Description</label>
+                        <textarea id="description" rows="4" required placeholder="Describe the car..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-images"></i> Car Photos (Up to 10)</label>
+                        <div class="file-upload-container">
+                            <label class="upload-label">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <span>Click to upload car photos</span>
+                                <span>or drag & drop</span>
+                                <input type="file" id="images" class="file-input" accept="image/*" multiple>
+                            </label>
+                            <div class="file-list" id="fileList"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-star"></i> Features</label>
+                        <div class="features-input">
+                            <input type="text" id="featureInput" placeholder="Add a feature (e.g., Sunroof, Navigation)">
+                            <button type="button" class="btn" onclick="addFeature()" style="padding: 8px 15px; background: #2ecc71; color: white;">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                        </div>
+                        <div class="features-list" id="featuresList"></div>
+                    </div>
+                    
+                    <div class="form-buttons">
+                        <button type="submit" class="btn btn-primary" id="submitBtn">
+                            <i class="fas fa-plus"></i> Add Car
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="cancelBtn" style="display:none;">
+                            <i class="fas fa-times"></i> Cancel Edit
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="cars-section">
+                <h2><i class="fas fa-list"></i> Current Cars</h2>
+                <div class="car-list" id="carsList">Loading cars...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // File selection display
+        document.getElementById('images').addEventListener('change', function(e) {
+            const files = e.target.files;
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '';
+            
+            if (files.length > 0) {
+                Array.from(files).forEach(file => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    
+                    const fileName = document.createElement('div');
+                    fileName.className = 'file-name';
+                    fileName.textContent = file.name;
+                    
+                    const fileSize = document.createElement('div');
+                    fileSize.className = 'file-size';
+                    fileSize.textContent = formatFileSize(file.size);
+                    
+                    fileItem.appendChild(fileName);
+                    fileItem.appendChild(fileSize);
+                    fileList.appendChild(fileItem);
+                });
+            }
+        });
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // Drag and drop functionality
+        const uploadContainer = document.querySelector('.file-upload-container');
+        const fileInput = document.getElementById('images');
+        
+        uploadContainer.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadContainer.style.borderColor = '#FFD700';
+            uploadContainer.style.background = '#e3f2fd';
+        });
+        
+        uploadContainer.addEventListener('dragleave', () => {
+            uploadContainer.style.borderColor = '#1a237e';
+            uploadContainer.style.background = '#f8fafc';
+        });
+        
+        uploadContainer.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadContainer.style.borderColor = '#1a237e';
+            uploadContainer.style.background = '#f8fafc';
+            
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                const event = new Event('change', { bubbles: true });
+                fileInput.dispatchEvent(event);
+            }
+        });
+        
+        // Features management
+        let features = [];
+        
+        window.addFeature = function() {
+            const input = document.getElementById('featureInput');
+            const feature = input.value.trim();
+            
+            if (feature && !features.includes(feature)) {
+                features.push(feature);
+                renderFeatures();
+                input.value = '';
+                input.focus();
+            }
+        };
+        
+        window.removeFeature = function(index) {
+            features.splice(index, 1);
+            renderFeatures();
+        };
+        
+        function renderFeatures() {
+            const container = document.getElementById('featuresList');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            features.forEach((feature, index) => {
+                const tag = document.createElement('span');
+                tag.className = 'feature-tag';
+                tag.innerHTML = `${feature} <i class="fas fa-times" onclick="removeFeature(${index})"></i>`;
+                container.appendChild(tag);
+            });
+            
+            if (features.length === 0) {
+                container.innerHTML = '<span style="color:#666;font-style:italic;">No features added yet</span>';
+            }
+        }
+        
+        // Update stats
+        function updateStats(cars) {
+            const totalCars = cars.length;
+            const totalImages = cars.reduce((sum, car) => sum + (car.images ? car.images.length : 0), 0);
+            const avgPrice = cars.length > 0 
+                ? cars.reduce((sum, car) => sum + car.price, 0) / cars.length 
+                : 0;
+            
+            document.getElementById('totalCars').textContent = totalCars;
+            document.getElementById('totalImages').textContent = totalImages;
+            document.getElementById('avgPrice').textContent = 'R' + Math.round(avgPrice).toLocaleString('en-ZA');
+        }
+        
+        // Add feature on Enter key
+        document.getElementById('featureInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                window.addFeature();
+            }
+        });
+        
+        renderFeatures();
+    </script>
+</body>
+</html>
