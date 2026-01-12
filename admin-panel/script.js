@@ -36,6 +36,7 @@ let features = [];
 if (document.getElementById('carForm')) {
     document.addEventListener('DOMContentLoaded', () => {
         console.log('Car Admin panel loaded');
+        loadDealers();
         loadCars();
         
         // Add New Car Form Handler
@@ -45,6 +46,8 @@ if (document.getElementById('carForm')) {
             const formData = new FormData();
             
             // Add car data to form
+            formData.append('dealerId', document.getElementById('dealerId').value);
+            formData.append('category', document.getElementById('category').value);
             formData.append('make', document.getElementById('make').value);
             formData.append('model', document.getElementById('model').value);
             formData.append('year', document.getElementById('year').value);
@@ -182,6 +185,31 @@ function renderFeatures() {
 // ======================
 // CAR MANAGEMENT
 // ======================
+async function loadDealers() {
+    try {
+        const response = await fetch(`${API_URL}/dealers`);
+        const dealers = await response.json();
+        
+        const dealerSelect = document.getElementById('dealerId');
+        if (dealerSelect) {
+            dealerSelect.innerHTML = '<option value="">Select Dealer...</option>';
+            dealers.forEach(dealer => {
+                const option = document.createElement('option');
+                option.value = dealer.id;
+                option.textContent = dealer.name;
+                dealerSelect.appendChild(option);
+            });
+            
+            // Select first dealer by default if available
+            if (dealers.length > 0) {
+                dealerSelect.value = dealers[0].id;
+            }
+        }
+    } catch (error) {
+        console.error('Error loading dealers:', error);
+    }
+}
+
 async function loadCars() {
     try {
         console.log('Loading cars from:', `${API_URL}/cars`);
@@ -220,7 +248,10 @@ function displayCars(cars) {
         html += `
             <div class="car-item" data-id="${car.id}">
                 <div class="car-header">
-                    <h3 class="car-title">${car.make} ${car.model} (${car.year})</h3>
+                    <div>
+                        <span style="background: #27ae60; color: white; padding: 3px 8px; border-radius: 3px; font-size: 0.75rem; margin-right: 8px;">${car.category || 'Used'}</span>
+                        <h3 class="car-title" style="display:inline;">${car.make} ${car.model} (${car.year})</h3>
+                    </div>
                     <div class="car-price">R${car.price ? car.price.toLocaleString('en-ZA') : 'N/A'}</div>
                 </div>
                 
@@ -238,7 +269,7 @@ function displayCars(cars) {
                             return `
                             <img src="${imgUrl}" 
                                  alt="Car photo" 
-                                 onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"60\" height=\"60\"><rect width=\"60\" height=\"60\" fill=\"%23f0f0f0\"/><text x=\"30\" y=\"30\" font-family=\"Arial\" font-size=\"10\" text-anchor=\"middle\" fill=\"%23666\">No Image</text></svg>'">
+                                 onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\"http://www.w3.org/2000/svg\\" width=\\"60\\" height=\\"60\\"><rect width=\\"60\\" height=\\"60\\" fill=\\"%23f0f0f0\\"/><text x=\\"30\\" y=\\"30\\" font-family=\\"Arial\\" font-size=\\"10\\" text-anchor=\\"middle\\" fill=\\"%23666\\">No Image</text></svg>'">
                         `}).join('')}
                         ${car.images.length > 4 ? `<span>+${car.images.length - 4} more</span>` : ''}
                     </div>
@@ -267,6 +298,8 @@ window.editCar = async function(id) {
         
         if (car) {
             // Fill form with car data
+            document.getElementById('dealerId').value = car.dealerId || '';
+            document.getElementById('category').value = car.category || 'Used';
             document.getElementById('make').value = car.make;
             document.getElementById('model').value = car.model;
             document.getElementById('year').value = car.year;

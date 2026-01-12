@@ -92,6 +92,7 @@ const upload = multer({
 let cars = [
     {
         id: Date.now(),
+        dealerId: 1,
         make: 'Toyota',
         model: 'Camry',
         year: 2022,
@@ -106,6 +107,8 @@ let cars = [
         doors: 4,
         seats: 5,
         condition: 'Excellent',
+        category: 'Used',
+        featured: false,
         features: ['Leather Seats', 'Sunroof', 'Backup Camera']
     }
 ];
@@ -122,6 +125,21 @@ let blogPosts = [
         author: 'DirkL',
         category: 'Buying Guide',
         tags: ['used cars', 'South Africa']
+    }
+];
+
+let dealers = [
+    {
+        id: 1,
+        name: 'DirkL Motors',
+        email: 'dirk@idealcar.co.za',
+        phone: '0123456789',
+        location: 'Johannesburg, Gauteng',
+        description: 'Premium used car dealership specializing in quality vehicles',
+        logo: null,
+        banner: null,
+        status: 'active',
+        createdAt: new Date().toISOString()
     }
 ];
 
@@ -219,6 +237,7 @@ app.post('/api/admin/cars', upload.array('images', 10), (req, res) => {
         
         const newCar = {
             id: Date.now(),
+            dealerId: Number(req.body.dealerId) || 1,
             make: req.body.make.trim(),
             model: req.body.model.trim(),
             year: year,
@@ -233,6 +252,8 @@ app.post('/api/admin/cars', upload.array('images', 10), (req, res) => {
             doors: Number(req.body.doors) || 4,
             seats: Number(req.body.seats) || 5,
             condition: req.body.condition || 'Good',
+            category: req.body.category || 'Used',
+            featured: req.body.featured === 'true',
             features: req.body.features
                 ? req.body.features.split(',').map(f => f.trim()).filter(f => f)
                 : []
@@ -371,6 +392,100 @@ app.delete('/api/admin/blog/:id', (req, res) => {
 });
 
 // ======================
+// DEALER MANAGEMENT ROUTES
+// ======================
+
+// Get all dealers
+app.get('/api/dealers', (req, res) => {
+    res.json(dealers.filter(d => d.status === 'active'));
+});
+
+// Get single dealer
+app.get('/api/dealers/:id', (req, res) => {
+    const dealer = dealers.find(d => d.id === Number(req.params.id));
+    if (!dealer) return res.status(404).json({ error: 'Dealer not found' });
+    res.json(dealer);
+});
+
+// Create dealer (admin)
+app.post('/api/admin/dealers', upload.fields([{ name: 'logo', maxCount: 1 }, { name: 'banner', maxCount: 1 }]), (req, res) => {
+    try {
+        if (!req.body.name || !req.body.email) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Missing required fields: name, email' 
+            });
+        }
+
+        const newDealer = {
+            id: Date.now(),
+            name: req.body.name.trim(),
+            email: req.body.email.trim(),
+            phone: req.body.phone || '',
+            location: req.body.location || '',
+            description: req.body.description || '',
+            logo: req.files?.logo ? `/uploads/${req.files.logo[0].filename}` : null,
+            banner: req.files?.banner ? `/uploads/${req.files.banner[0].filename}` : null,
+            status: 'active',
+            createdAt: new Date().toISOString()
+        };
+
+        dealers.push(newDealer);
+        console.log(`✓ New dealer created: ${newDealer.name} (ID: ${newDealer.id})`);
+        res.json({ success: true, dealer: newDealer });
+    } catch (err) {
+        console.error('Error creating dealer:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// Update dealer
+app.put('/api/admin/dealers/:id', upload.fields([{ name: 'logo', maxCount: 1 }, { name: 'banner', maxCount: 1 }]), (req, res) => {
+    try {
+        const index = dealers.findIndex(d => d.id === Number(req.params.id));
+        if (index === -1) {
+            return res.status(404).json({ success: false, error: 'Dealer not found' });
+        }
+
+        const dealer = dealers[index];
+        dealers[index] = {
+            ...dealer,
+            name: req.body.name || dealer.name,
+            email: req.body.email || dealer.email,
+            phone: req.body.phone || dealer.phone,
+            location: req.body.location || dealer.location,
+            description: req.body.description || dealer.description,
+            logo: req.files?.logo ? `/uploads/${req.files.logo[0].filename}` : dealer.logo,
+            banner: req.files?.banner ? `/uploads/${req.files.banner[0].filename}` : dealer.banner,
+            status: req.body.status || dealer.status
+        };
+
+        res.json({ success: true, dealer: dealers[index] });
+    } catch (err) {
+        console.error('Error updating dealer:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// Delete dealer
+app.delete('/api/admin/dealers/:id', (req, res) => {
+    const index = dealers.findIndex(d => d.id === Number(req.params.id));
+    if (index === -1) {
+        return res.status(404).json({ success: false, error: 'Dealer not found' });
+    }
+    // Soft delete - set status to inactive
+    dealers[index].status = 'inactive';
+    res.json({ success: true });
+});
+
+// Get cars by dealer
+app.get('/api/dealers/:id/cars', (req, res) => {
+    const dealerId = Number(req.params.id);
+    const dealerCars = cars.filter(c => c.dealerId === dealerId);
+    res.json(dealerCars);
+});
+
+// ======================
 // 7. CONTACT
 // ======================
 app.post('/api/contact', (req, res) => {
@@ -420,6 +535,7 @@ app.listen(PORT, () => {
     console.log(`📊  API Docs: http://localhost:${PORT}/`);
     console.log(`👤  Admin: Use password "${process.env.ADMIN_PASSWORD || 'admin123'}"`);
     console.log('='.repeat(50));
+    console.log(`📝  Total Dealers: ${dealers.filter(d => d.status === 'active').length}`);
     console.log(`📝  Total Cars: ${cars.length}`);
     console.log(`📝  Total Blog Posts: ${blogPosts.length}`);
     console.log('='.repeat(50) + '\n');

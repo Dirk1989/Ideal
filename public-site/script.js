@@ -6,10 +6,17 @@ let currentCars = [];
 // Initialize carousels
 function initializeCarousels() {
     document.querySelectorAll('.car-carousel').forEach(carousel => {
-        new Swiper(carousel.querySelector('.swiper'), {
+        const swiper = carousel.querySelector('.swiper');
+        const slides = swiper.querySelectorAll('.swiper-slide');
+        const slideCount = slides.length;
+        
+        // Only enable loop if we have more than 1 slide
+        const shouldLoop = slideCount > 1;
+        
+        new Swiper(swiper, {
             slidesPerView: 1,
             spaceBetween: 0,
-            loop: true,
+            loop: shouldLoop,
             pagination: {
                 el: carousel.querySelector('.swiper-pagination'),
                 clickable: true,
@@ -18,10 +25,10 @@ function initializeCarousels() {
                 nextEl: carousel.querySelector('.swiper-button-next'),
                 prevEl: carousel.querySelector('.swiper-button-prev'),
             },
-            autoplay: {
+            autoplay: shouldLoop ? {
                 delay: 4000,
                 disableOnInteraction: false,
-            },
+            } : false,
         });
     });
 }
