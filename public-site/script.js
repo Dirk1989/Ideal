@@ -1,3 +1,4 @@
+const IMAGE_BASE_URL = 'http://localhost:3000';
 const API_URL = 'http://localhost:3000/api';
 let allCars = [];
 let currentCars = [];
@@ -539,7 +540,6 @@ function openBlogModal(postId) {
                     ">
                         <i class="fas fa-times"></i>
                     </button>
-                    
                     <img src="${post.image}" alt="${post.title}" style="width:100%; height:300px; object-fit:cover; border-radius:10px 10px 0 0;">
                     
                     <div style="padding: 30px;">

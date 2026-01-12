@@ -3,7 +3,7 @@
 // ======================
 const TOKEN = localStorage.getItem('idealcarAdminToken') || localStorage.getItem('adminToken');
 
-if (!TOKEN) {
+if (!TOKEN && window.location.pathname.includes('index.html')) {
     alert('Please login first');
     window.location.href = 'login.html';
 }
@@ -14,7 +14,7 @@ if (!TOKEN) {
 const API_URL = 'http://localhost:3000/api';
 
 // ======================
-// DOM ELEMENTS
+// DOM ELEMENTS (Car Page)
 // ======================
 const carForm = document.getElementById('carForm');
 const submitBtn = document.getElementById('submitBtn');
@@ -31,33 +31,84 @@ let currentCarId = null;
 let features = [];
 
 // ======================
-// INITIALIZATION
+// INITIALIZATION (Car Page)
 // ======================
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('Admin panel loaded');
-    loadCars();
-    
-    // Add form submit handler
-    if (carForm) {
+if (document.getElementById('carForm')) {
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('Car Admin panel loaded');
+        loadCars();
+        
+        // Add New Car Form Handler
         carForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            await submitCar();
+            
+            const formData = new FormData();
+            
+            // Add car data to form
+            formData.append('make', document.getElementById('make').value);
+            formData.append('model', document.getElementById('model').value);
+            formData.append('year', document.getElementById('year').value);
+            formData.append('price', document.getElementById('price').value);
+            formData.append('mileage', document.getElementById('mileage').value);
+            formData.append('transmission', document.getElementById('transmission').value);
+            formData.append('fuel', document.getElementById('fuel').value);
+            formData.append('engine', document.getElementById('engine').value);
+            formData.append('color', document.getElementById('color').value);
+            formData.append('condition', document.getElementById('condition').value);
+            formData.append('doors', document.getElementById('doors').value);
+            formData.append('seats', document.getElementById('seats').value);
+            formData.append('description', document.getElementById('description').value);
+            
+            // Add features
+            if (features.length > 0) {
+                formData.append('features', features.join(','));
+            }
+            
+            // Add images
+            const imageFiles = imagesInput.files;
+            for (let i = 0; i < imageFiles.length; i++) {
+                formData.append('images', imageFiles[i]);
+            }
+            
+            try {
+                let url = `${API_URL}/admin/cars`;
+                let method = 'POST';
+                
+                if (isEditing && currentCarId) {
+                    url = `${API_URL}/admin/cars/${currentCarId}`;
+                    method = 'PUT';
+                }
+                
+                const response = await fetch(url, {
+                    method: method,
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert(isEditing ? 'Car updated successfully!' : 'Car added successfully!');
+                    resetForm();
+                    await loadCars();
+                } else {
+                    throw new Error(data.error || data.message || 'Operation failed');
+                }
+                
+            } catch (error) {
+                console.error('Error saving car:', error);
+                alert(`Error: ${error.message}`);
+            }
         });
-    }
-    
-    // Cancel button handler
-    if (cancelBtn) {
-        cancelBtn.addEventListener('click', resetForm);
-    }
-    
-    // File input display
-    if (imagesInput) {
-        imagesInput.addEventListener('change', updateFileList);
-    }
-    
-    // Features initialization
-    renderFeatures();
-});
+        
+        // File input display
+        if (imagesInput) {
+            imagesInput.addEventListener('change', updateFileList);
+        }
+        
+        // Features initialization
+        renderFeatures();
+    });
+}
 
 // ======================
 // FILE HANDLING
@@ -151,7 +202,7 @@ async function loadCars() {
 function displayCars(cars) {
     if (!carsList) return;
     
-    if (cars.length === 0) {
+    if (!cars || cars.length === 0) {
         carsList.innerHTML = '<p style="text-align: center; padding: 30px; color: #666;">No cars yet. Add your first car!</p>';
         return;
     }
@@ -159,39 +210,45 @@ function displayCars(cars) {
     let html = '';
     cars.forEach(car => {
         const firstImage = car.images && car.images.length > 0 ? car.images[0] : null;
-        const imageUrl = firstImage 
-            ? `http://localhost:3000/uploads/${firstImage}`
-            : 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="75"><rect width="100" height="75" fill="#f0f0f0"/><text x="50" y="38" font-family="Arial" font-size="12" text-anchor="middle" fill="#666">Car</text></svg>';
+        let imageUrl;
+        if (firstImage) {
+            imageUrl = firstImage.startsWith('http') ? firstImage : `http://localhost:3000${firstImage}`;
+        } else {
+            imageUrl = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="75"><rect width="100" height="75" fill="#f0f0f0"/><text x="50" y="38" font-family="Arial" font-size="12" text-anchor="middle" fill="#666">No Image</text></svg>';
+        }
         
         html += `
-            <div class="car-item">
+            <div class="car-item" data-id="${car.id}">
                 <div class="car-header">
                     <h3 class="car-title">${car.make} ${car.model} (${car.year})</h3>
-                    <div class="car-price">R${car.price.toLocaleString('en-ZA')}</div>
+                    <div class="car-price">R${car.price ? car.price.toLocaleString('en-ZA') : 'N/A'}</div>
                 </div>
                 
                 <div class="car-details">
-                    <div><strong>Specs:</strong> ${car.mileage} • ${car.transmission} • ${car.fuel}</div>
-                    <div><strong>Engine:</strong> ${car.engine} • <strong>Color:</strong> ${car.color}</div>
-                    <div><strong>Condition:</strong> ${car.condition}</div>
+                    <div><i class="fas fa-tachometer-alt"></i> ${car.mileage || 'N/A'}</div>
+                    <div><i class="fas fa-cog"></i> ${car.transmission || 'N/A'}</div>
+                    <div><i class="fas fa-gas-pump"></i> ${car.fuel || 'N/A'}</div>
+                    <div><i class="fas fa-palette"></i> ${car.color || 'N/A'}</div>
                 </div>
                 
                 ${car.images && car.images.length > 0 ? `
                     <div class="car-images">
-                        ${car.images.slice(0, 4).map(img => `
-                            <img src="http://localhost:3000/uploads/${img}" 
+                        ${car.images.slice(0, 4).map(img => {
+                            const imgUrl = img.startsWith('http') ? img : `http://localhost:3000${img}`;
+                            return `
+                            <img src="${imgUrl}" 
                                  alt="Car photo" 
-                                 onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"60\" height=\"60\"><rect width=\"60\" height=\"60\" fill=\"%23f0f0f0\"/><text x=\"30\" y=\"30\" font-family=\"Arial\" font-size=\"10\" text-anchor=\"middle\" fill=\"%23666\">Car</text></svg>'">
-                        `).join('')}
+                                 onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"60\" height=\"60\"><rect width=\"60\" height=\"60\" fill=\"%23f0f0f0\"/><text x=\"30\" y=\"30\" font-family=\"Arial\" font-size=\"10\" text-anchor=\"middle\" fill=\"%23666\">No Image</text></svg>'">
+                        `}).join('')}
                         ${car.images.length > 4 ? `<span>+${car.images.length - 4} more</span>` : ''}
                     </div>
                 ` : ''}
                 
                 <div class="car-actions">
-                    <button class="btn-edit" onclick="editCar(${car.id})">
+                    <button class="btn-edit" onclick="editCar('${car.id}')">
                         <i class="fas fa-edit"></i> Edit
                     </button>
-                    <button class="btn-delete" onclick="deleteCar(${car.id})">
+                    <button class="btn-delete" onclick="deleteCar('${car.id}')">
                         <i class="fas fa-trash"></i> Delete
                     </button>
                 </div>
@@ -202,70 +259,11 @@ function displayCars(cars) {
     carsList.innerHTML = html;
 }
 
-async function submitCar() {
-    const formData = new FormData();
-    
-    // Add car data
-    formData.append('make', document.getElementById('make').value);
-    formData.append('model', document.getElementById('model').value);
-    formData.append('year', document.getElementById('year').value);
-    formData.append('price', document.getElementById('price').value);
-    formData.append('mileage', document.getElementById('mileage').value);
-    formData.append('transmission', document.getElementById('transmission').value);
-    formData.append('fuel', document.getElementById('fuel').value);
-    formData.append('engine', document.getElementById('engine').value);
-    formData.append('color', document.getElementById('color').value);
-    formData.append('condition', document.getElementById('condition').value);
-    formData.append('doors', document.getElementById('doors').value);
-    formData.append('seats', document.getElementById('seats').value);
-    formData.append('description', document.getElementById('description').value);
-    
-    // Add features
-    if (features.length > 0) {
-        formData.append('features', features.join(','));
-    }
-    
-    // Add images
-    const imageFiles = imagesInput.files;
-    for (let i = 0; i < imageFiles.length; i++) {
-        formData.append('images', imageFiles[i]);
-    }
-    
-    try {
-        let url = `${API_URL}/admin/cars`;
-        let method = 'POST';
-        
-        if (isEditing) {
-            url = `${API_URL}/admin/cars/${currentCarId}`;
-            method = 'PUT';
-        }
-        
-        const response = await fetch(url, {
-            method: method,
-            body: formData
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            alert(isEditing ? 'Car updated successfully!' : 'Car added successfully!');
-            resetForm();
-            await loadCars();
-        } else {
-            throw new Error(data.error || 'Operation failed');
-        }
-        
-    } catch (error) {
-        console.error('Error saving car:', error);
-        alert(`Error: ${error.message}`);
-    }
-}
-
 window.editCar = async function(id) {
     try {
         const response = await fetch(`${API_URL}/cars`);
         const cars = await response.json();
-        const car = cars.find(c => c.id === id);
+        const car = cars.find(c => c.id == id);
         
         if (car) {
             // Fill form with car data
@@ -283,8 +281,14 @@ window.editCar = async function(id) {
             document.getElementById('seats').value = car.seats;
             document.getElementById('description').value = car.description;
             
-            // Set features
-            features = car.features || [];
+            // Set features - handle both string and array
+            if (Array.isArray(car.features)) {
+                features = car.features;
+            } else if (typeof car.features === 'string') {
+                features = car.features.split(',').map(f => f.trim()).filter(f => f);
+            } else {
+                features = [];
+            }
             renderFeatures();
             
             // Update UI for editing
@@ -309,18 +313,22 @@ window.deleteCar = async function(id) {
     
     try {
         const response = await fetch(`${API_URL}/admin/cars/${id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${TOKEN}`
+            }
         });
         
         if (response.ok) {
             alert('Car deleted successfully!');
             await loadCars();
         } else {
-            throw new Error('Failed to delete car');
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to delete car');
         }
     } catch (error) {
         console.error('Error deleting car:', error);
-        alert('Error deleting car.');
+        alert(`Error deleting car: ${error.message}`);
     }
 };
 
@@ -335,81 +343,6 @@ function resetForm() {
     if (fileList) fileList.innerHTML = '';
     if (imagesInput) imagesInput.value = '';
 }
-
-// Add this after the existing blog routes:
-
-// Blog management routes
-app.get('/api/admin/blog', (req, res) => {
-    res.json(blogPosts);
-});
-
-app.get('/api/admin/blog/:id', (req, res) => {
-    const id = parseInt(req.params.id);
-    const post = blogPosts.find(p => p.id === id);
-    post ? res.json(post) : res.status(404).json({ error: 'Post not found' });
-});
-
-app.post('/api/admin/blog', (req, res) => {
-    try {
-        const newPost = {
-            id: blogPosts.length + 1,
-            title: req.body.title,
-            excerpt: req.body.excerpt,
-            fullContent: req.body.fullContent,
-            image: req.body.image || 'https://images.unsplash.com/photo-1493238792000-8113da705763?w=800&h=500&fit=crop',
-            date: req.body.date || new Date().toISOString().split('T')[0],
-            readTime: req.body.readTime || '5 min',
-            author: req.body.author || 'Dirkl',
-            category: req.body.category || 'General'
-        };
-        
-        blogPosts.unshift(newPost); // Add to beginning
-        res.json({ success: true, post: newPost });
-        
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-app.put('/api/admin/blog/:id', (req, res) => {
-    try {
-        const id = parseInt(req.params.id);
-        const index = blogPosts.findIndex(p => p.id === id);
-        
-        if (index === -1) {
-            return res.status(404).json({ success: false, error: 'Post not found' });
-        }
-        
-        const updatedPost = {
-            ...blogPosts[index],
-            title: req.body.title,
-            excerpt: req.body.excerpt,
-            fullContent: req.body.fullContent,
-            image: req.body.image || blogPosts[index].image,
-            readTime: req.body.readTime || blogPosts[index].readTime,
-            author: req.body.author || blogPosts[index].author,
-            category: req.body.category || blogPosts[index].category
-        };
-        
-        blogPosts[index] = updatedPost;
-        res.json({ success: true, post: updatedPost });
-        
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-app.delete('/api/admin/blog/:id', (req, res) => {
-    const id = parseInt(req.params.id);
-    const newPosts = blogPosts.filter(p => p.id !== id);
-    
-    if (newPosts.length < blogPosts.length) {
-        blogPosts = newPosts;
-        res.json({ success: true });
-    } else {
-        res.status(404).json({ success: false, error: 'Post not found' });
-    }
-});
 
 // ======================
 // STATS FUNCTIONS
@@ -436,5 +369,31 @@ function updateStats(cars) {
 window.logout = function() {
     localStorage.removeItem('idealcarAdminToken');
     localStorage.removeItem('adminToken');
+    sessionStorage.clear();
     window.location.href = 'login.html';
 };
+
+// ======================
+// BLOG ADMIN FUNCTIONALITY (if needed)
+// ======================
+// This is already handled in blog-admin.html's separate script
+// The blog-admin.html has its own separate JavaScript
+
+// ======================
+// CANCEL EDIT BUTTON HANDLER
+// ======================
+if (document.getElementById('cancelBtn')) {
+    document.getElementById('cancelBtn').addEventListener('click', resetForm);
+}
+
+// ======================
+// FEATURE INPUT ENTER KEY HANDLER
+// ======================
+if (document.getElementById('featureInput')) {
+    document.getElementById('featureInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            window.addFeature();
+        }
+    });
+}
