@@ -1,5 +1,9 @@
-const IMAGE_BASE_URL = 'http://localhost:3000';
-const API_URL = 'http://localhost:3000/api';
+// Configurable API URLs - auto-detect environment
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:3000'
+    : window.location.origin;
+const IMAGE_BASE_URL = API_BASE;
+const API_URL = `${API_BASE}/api`;
 let allCars = [];
 let currentCars = [];
 
@@ -367,27 +371,38 @@ function showContactForm(carName) {
 }
 
 async function submitContactForm() {
-    const name = document.getElementById('contactName').value;
-    const email = document.getElementById('contactEmail').value;
-    const phone = document.getElementById('contactPhone').value;
-    const subject = document.getElementById('contactSubject').value;
-    const message = document.getElementById('contactMessage').value;
+    const name = document.getElementById('contactName')?.value;
+    const email = document.getElementById('contactEmail')?.value;
+    const phone = document.getElementById('contactPhone')?.value;
+    const subject = document.getElementById('contactSubject')?.value;
+    const message = document.getElementById('contactMessage')?.value;
     
     // Simple validation
-    if (!name || !email || !phone || !message) {
-        alert('Please fill in all required fields');
+    if (!name || !email || !message) {
+        alert('Please fill in all required fields (Name, Email, Message)');
         return;
     }
     
-    // Validate South African phone number (basic)
-    const phoneRegex = /^(\+27|0)[0-9]{9}$/;
-    if (!phoneRegex.test(phone.replace(/\s/g, ''))) {
-        alert('Please enter a valid South African phone number');
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        alert('Please enter a valid email address');
         return;
+    }
+    
+    // Validate South African phone number (basic) - if provided
+    if (phone) {
+        const phoneRegex = /^(\+27|0)[0-9]{9}$/;
+        if (!phoneRegex.test(phone.replace(/\s/g, ''))) {
+            alert('Please enter a valid South African phone number');
+            return;
+        }
     }
     
     // Show loading
     const submitBtn = document.querySelector('.submit-button');
+    if (!submitBtn) return;
+    
     const originalText = submitBtn.innerHTML;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
     submitBtn.disabled = true;
@@ -403,11 +418,12 @@ async function submitContactForm() {
         
         const data = await response.json();
         
-        if (data.success) {
+        if (response.ok && data.success) {
             alert(`✅ ${data.message}\n\nReference: ${data.reference}`);
-            document.getElementById('contactForm').reset();
+            const contactForm = document.getElementById('contactForm');
+            if (contactForm) contactForm.reset();
         } else {
-            alert(`❌ ${data.message || 'Failed to send message. Please try again.'}`);
+            alert(`❌ ${data.error || data.message || 'Failed to send message. Please try again.'}`);
         }
     } catch (error) {
         console.error('Error submitting contact form:', error);
@@ -500,10 +516,17 @@ async function loadBlogPosts() {
 
 function openBlogModal(postId) {
     fetch(`${API_URL}/blog/${postId}`)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) throw new Error('Failed to load blog post');
+            return response.json();
+        })
         .then(post => {
+            if (!post) throw new Error('Post not found');
+            
             const modal = document.createElement('div');
             modal.className = 'blog-modal';
+            modal.setAttribute('role', 'dialog');
+            modal.setAttribute('aria-modal', 'true');
             modal.style.cssText = `
                 position: fixed;
                 top: 0;
@@ -519,6 +542,11 @@ function openBlogModal(postId) {
                 overflow-y: auto;
             `;
             
+            const closeHandler = () => {
+                modal.remove();
+                document.body.style.overflow = 'auto';
+            };
+            
             modal.innerHTML = `
                 <div class="blog-modal-content" style="
                     background: white;
@@ -528,7 +556,7 @@ function openBlogModal(postId) {
                     border-radius: 10px;
                     position: relative;
                 ">
-                    <button class="blog-modal-close" onclick="this.parentElement.parentElement.remove(); document.body.style.overflow='auto'" style="
+                    <button class="blog-modal-close" style="
                         position: absolute;
                         top: 15px;
                         right: 15px;
@@ -544,33 +572,34 @@ function openBlogModal(postId) {
                         display: flex;
                         align-items: center;
                         justify-content: center;
+                        padding: 0;
                     ">
                         <i class="fas fa-times"></i>
                     </button>
-                    <img src="${post.image}" alt="${post.title}" style="width:100%; height:300px; object-fit:cover; border-radius:10px 10px 0 0;">
+                    <img src="${post.image || 'https://via.placeholder.com/800x300'}" alt="${post.title}" style="width:100%; height:300px; object-fit:cover; border-radius:10px 10px 0 0; display:block;">
                     
                     <div style="padding: 30px;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                            <h2 style="color:#1a237e; margin:0;">${post.title}</h2>
-                            <span style="background:#FFD700; color:#1a237e; padding:5px 15px; border-radius:20px; font-weight:bold;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; gap:20px;">
+                            <h2 style="color:#1a237e; margin:0; flex:1;">${post.title || 'Blog Post'}</h2>
+                            <span style="background:#FFD700; color:#1a237e; padding:5px 15px; border-radius:20px; font-weight:bold; white-space:nowrap;">
                                 ${post.category || 'General'}
                             </span>
                         </div>
                         
-                        <div style="display:flex; gap:20px; color:#666; margin-bottom:30px; font-size:0.9rem;">
-                            <span><i class="far fa-calendar"></i> ${post.date}</span>
-                            <span><i class="far fa-clock"></i> ${post.readTime}</span>
-                            <span><i class="far fa-user"></i> ${post.author}</span>
+                        <div style="display:flex; gap:20px; color:#666; margin-bottom:30px; font-size:0.9rem; flex-wrap:wrap;">
+                            <span><i class="far fa-calendar"></i> ${post.date || 'N/A'}</span>
+                            <span><i class="far fa-clock"></i> ${post.readTime || '5 min'}</span>
+                            <span><i class="far fa-user"></i> ${post.author || 'Admin'}</span>
                         </div>
                         
-                        <div class="blog-full-content">
-                            ${post.fullContent}
+                        <div class="blog-full-content" style="line-height:1.6; color:#333;">
+                            ${post.fullContent || post.excerpt || 'No content available'}
                         </div>
                         
                         <div style="margin-top:40px; padding-top:20px; border-top:2px solid #f0f0f0;">
                             <h3 style="color:#1a237e;">Share this article:</h3>
-                            <div style="display:flex; gap:10px; margin-top:15px;">
-                                <button onclick="shareOnFacebook('${post.title}', '${window.location.href}')" style="
+                            <div style="display:flex; gap:10px; margin-top:15px; flex-wrap:wrap;">
+                                <button onclick="shareOnFacebook('${(post.title || '').replace(/'/g, "\\'")}')" style="
                                     background: #1877F2;
                                     color: white;
                                     border: none;
@@ -583,7 +612,7 @@ function openBlogModal(postId) {
                                 ">
                                     <i class="fab fa-facebook"></i> Facebook
                                 </button>
-                                <button onclick="shareOnWhatsApp('${post.title}', '${window.location.href}')" style="
+                                <button onclick="shareOnWhatsApp('${(post.title || '').replace(/'/g, "\\'")}')" style="
                                     background: #25D366;
                                     color: white;
                                     border: none;
@@ -596,7 +625,7 @@ function openBlogModal(postId) {
                                 ">
                                     <i class="fab fa-whatsapp"></i> WhatsApp
                                 </button>
-                                <button onclick="shareOnTwitter('${post.title}', '${window.location.href}')" style="
+                                <button onclick="shareOnTwitter('${(post.title || '').replace(/'/g, "\\'")}')" style="
                                     background: #1DA1F2;
                                     color: white;
                                     border: none;
@@ -615,11 +644,32 @@ function openBlogModal(postId) {
                 </div>
             `;
             
+            // Add close button handler
+            const closeBtn = modal.querySelector('.blog-modal-close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', closeHandler);
+            }
+            
+            // Close on background click
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeHandler();
+            });
+            
+            // Close on Escape key
+            const escapeHandler = (e) => {
+                if (e.key === 'Escape') {
+                    closeHandler();
+                    document.removeEventListener('keydown', escapeHandler);
+                }
+            };
+            document.addEventListener('keydown', escapeHandler);
+            
             document.body.appendChild(modal);
             document.body.style.overflow = 'hidden';
             
             // Scroll to top of modal
-            modal.querySelector('.blog-modal-content').scrollTop = 0;
+            const content = modal.querySelector('.blog-modal-content');
+            if (content) content.scrollTop = 0;
         })
         .catch(error => {
             console.error('Error loading blog post:', error);
@@ -628,16 +678,19 @@ function openBlogModal(postId) {
 }
 
 // Share functions
-function shareOnFacebook(title, url) {
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(title)}`, '_blank');
+function shareOnFacebook(title) {
+    const url = window.location.href;
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(title)}`, '_blank', 'width=600,height=400');
 }
 
-function shareOnWhatsApp(title, url) {
+function shareOnWhatsApp(title) {
+    const url = window.location.href;
     window.open(`https://wa.me/?text=${encodeURIComponent(`${title} - ${url}`)}`, '_blank');
 }
 
-function shareOnTwitter(title, url) {
-    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`, '_blank');
+function shareOnTwitter(title) {
+    const url = window.location.href;
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`, '_blank', 'width=600,height=400');
 }
 
 // Update DOMContentLoaded to load blog posts

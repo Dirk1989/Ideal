@@ -11,7 +11,11 @@ if (!TOKEN && window.location.pathname.includes('index.html')) {
 // ======================
 // CONFIGURATION
 // ======================
-const API_URL = 'http://localhost:3000/api';
+// Configurable API URL - defaults to localhost, can be overridden via environment
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:3000'
+    : window.location.origin;
+const API_URL = `${API_BASE}/api`;
 
 // ======================
 // DOM ELEMENTS (Car Page)
@@ -84,7 +88,10 @@ if (document.getElementById('carForm')) {
                 
                 const response = await fetch(url, {
                     method: method,
-                    body: formData
+                    body: formData,
+                    headers: {
+                        'Authorization': `Bearer ${TOKEN}`
+                    }
                 });
                 
                 const data = await response.json();
@@ -348,7 +355,8 @@ window.deleteCar = async function(id) {
         const response = await fetch(`${API_URL}/admin/cars/${id}`, {
             method: 'DELETE',
             headers: {
-                'Authorization': `Bearer ${TOKEN}`
+                'Authorization': `Bearer ${TOKEN}`,
+                'Content-Type': 'application/json'
             }
         });
         
